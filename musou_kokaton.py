@@ -242,6 +242,22 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Gravity(pg.sprite.Sprite):
+    def __init__(self,life:int):
+        super().__init__()
+        self.image = pg.Surface((WIDTH,HEIGHT))
+        pg.draw.rect(self.image,(0,0,0),(0,0,WIDTH,HEIGHT))
+        self.image.set_alpha(150)
+        self.rect = self.image.get_rect()
+        self.life=life
+
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+
+
 class Life(pg.sprite.Sprite):
     """
     残機数に関するクラス
@@ -277,6 +293,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    gravities = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -287,6 +304,10 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN:
+                if score.value > 200:
+                    gravities.add(Gravity(400))
+                    score.value -= 200
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -305,7 +326,12 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():  # ビームと衝突した爆弾リスト
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
-
+        for bomb in pg.sprite.groupcollide(bombs,gravities,True,False).keys():
+            exps.add(Explosion(bomb,50))
+            score.value += 1
+        for emy in pg.sprite.groupcollide(emys,gravities,True,False).keys():
+            exps.add(Explosion(emy,100))
+            score.value += 10
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
             life.num -= 1
             if life.num<=0:
@@ -316,6 +342,8 @@ def main():
                 return
 
         bird.update(key_lst, screen)
+        gravities.update()
+        gravities.draw(screen)
         beams.update()
         beams.draw(screen)
         emys.update()
